@@ -39,8 +39,7 @@ if __name__ == '__main__':
                     full_path = os.path.join(root, file)
                     prompt_files.append(full_path)
 
-    i = 0
-    for file in prompt_files:
+    for i, file in enumerate(prompt_files):
         # read prompt file
         lines = ''
         with open(file, 'r', encoding='utf-8') as f:
@@ -58,10 +57,11 @@ if __name__ == '__main__':
                 if line.lower().strip().startswith('[prompts]'):
                     finished = True
                     next_file = ''
-                    if i+1 >= len(prompt_files):
-                        next_file = os.path.basename(prompt_files[0])
-                    else:
-                        next_file = os.path.basename(prompt_files[i+1])
+                    next_file = (
+                        os.path.basename(prompt_files[0])
+                        if i + 1 >= len(prompt_files)
+                        else os.path.basename(prompt_files[i + 1])
+                    )
                     pre = '# added by chain.py\n# note these will override any settings above'
                     pre += '\n!REPEAT = no\n!NEXT_PROMPT_FILE = ' + next_file
 
@@ -80,9 +80,7 @@ if __name__ == '__main__':
             edited_lines += line
 
         if not found_config:
-            print(file + ' does not have a [config] section; no edits made!')
+            print(f'{file} does not have a [config] section; no edits made!')
         else:
             with open(file, 'w', encoding='utf-8') as f:
                 f.write(edited_lines)
-
-        i += 1

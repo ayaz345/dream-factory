@@ -103,36 +103,20 @@ class Civitai:
             #version_name = modeldata['name']
             self.hashmap[hash] = model_id
 
-            #for version in modeldata['modelVersions']:
-                #print(version['name'])
-                #for image in version['images']:
-
             for image in modeldata['images']:
                 #print(image['url'])
                 meta = image['meta']
-                if not meta is None:
+                if meta is not None:
                     images.append(meta)
             data[model_id] = images
-        else:
-            #print('   Hash ' + hash + ' not found!')
-            pass
-
         return [data, model_name]
 
     def get_civitai_id_from_hash(self, hash):
-        id = -1
         hash = hash.upper()
-        if hash in self.hashmap:
-            id = self.hashmap[hash]
-        return id
+        return self.hashmap[hash] if hash in self.hashmap else -1
 
     def get_hash_from_civitai_id(self, id):
-        hash = ""
-        for key, value in self.hashmap.items():
-            if value == id:
-                hash = key
-                break
-        return hash
+        return next((key for key, value in self.hashmap.items() if value == id), "")
 
     # scrapes the specified URL
     def scrape(self, playwright: Playwright, url = '') -> None:
@@ -154,7 +138,7 @@ class Civitai:
                 try:
                     page.goto(self.url, wait_until="networkidle")
                 except:
-                    print('Error connecting to ' + self.url + '; re-trying in 5 seconds...')
+                    print(f'Error connecting to {self.url}; re-trying in 5 seconds...')
                     tries += 1
                     time.sleep(5)
                 else:
@@ -166,31 +150,28 @@ class Civitai:
 
     # handles the response from civitai.com, returns list of image metadata posts
     def handle_response(self, response):
-        if ("image.getImagesAsPostsInfinite?" in response.url):
-            r = response.json()
-            count = 0
-            total_images = 0
+        if "image.getImagesAsPostsInfinite?" not in response.url:
+            return
+        r = response.json()
+        count = 0
+        total_images = 0
 
-            if r["result"]["data"]["json"]["items"]:
-                for post in r["result"]["data"]["json"]["items"]:
-                    count += 1
-                    image_count = 0
-                    if post["images"]:
-                        for image in post["images"]:
-                            image_count += 1
-                            if "meta" in image and image["meta"] is not None:
-                                if "prompt" in image["meta"]:
-                                    p = image["meta"]["prompt"]
-                                    found = False
-                                    for i in self.metadata:
-                                        if p == i['prompt']:
-                                            found = True
-                                            break
-                                    if not found:
-                                        total_images += 1
-                                        self.metadata.append(image["meta"])
-                    #print('Post ID ' + str(post["postId"]) + ' -> number of images: ' + str(image_count))
-            print('Found ' + str(count) + ' posts with ' + str(total_images) + ' images containing metadata...')
+        if r["result"]["data"]["json"]["items"]:
+            for post in r["result"]["data"]["json"]["items"]:
+                count += 1
+                if post["images"]:
+                    for image in post["images"]:
+                        if "meta" in image and image["meta"] is not None:
+                            if "prompt" in image["meta"]:
+                                p = image["meta"]["prompt"]
+                                found = any(p == i['prompt'] for i in self.metadata)
+                                if not found:
+                                    total_images += 1
+                                    self.metadata.append(image["meta"])
+                            #print('Post ID ' + str(post["postId"]) + ' -> number of images: ' + str(image_count))
+        print(
+            f'Found {str(count)} posts with {str(total_images)} images containing metadata...'
+        )
 
     # writes output .prompts file from given list of image metadata
     def write(self, hash, model_name, metadata = []):
@@ -198,12 +179,12 @@ class Civitai:
         if metadata == []:
             metadata = self.metadata
 
-        filename = 'civitai-' + model_name + '.prompts'
+        filename = f'civitai-{model_name}.prompts'
         with open(filename, 'w', encoding="utf-8") as f:
             resize_txt = '!AUTO_SIZE = off'
             if int(resize) > 0:
-                resize_txt = '!AUTO_SIZE = resize_longest_dimension: ' + str(resize)
-            f.write('[config]\n\n!MODE = standard\n!REPEAT = yes\n\n' + str(resize_txt) + '\n')
+                resize_txt = f'!AUTO_SIZE = resize_longest_dimension: {str(resize)}'
+            f.write('[config]\n\n!MODE = standard\n!REPEAT = yes\n\n' + resize_txt + '\n')
             f.write('!HIGHRES_FIX = yes\n!STRENGTH = 0.68\n!FILENAME = <model>-<date>-<time>\n')
             f.write('!AUTO_INSERT_MODEL_TRIGGER = end\n\n!CKPT_FILE = ' + hash)
             f.write('\n\n[prompts]\n')
@@ -211,7 +192,7 @@ class Civitai:
             for image in metadata:
                 prompt = image["prompt"].replace('\n', '')
                 if prompt.startswith('['):
-                    prompt = 'image of ' + prompt
+                    prompt = f'image of {prompt}'
                 while prompt.endswith(','):
                     prompt = prompt[:-1]
                 prompt = prompt.strip()
@@ -224,19 +205,19 @@ class Civitai:
                     f.write('\n!NEG_PROMPT = ' + negPrompt + '\n')
                 if "sampler" in image:
                     sampler = image["sampler"]
-                    f.write('!SAMPLER = ' + sampler + '\n')
+                    f.write(f'!SAMPLER = {sampler}' + '\n')
                 if "cfgScale" in image:
                     scale = image["cfgScale"]
-                    f.write('!SCALE = ' + str(scale) + '\n')
+                    f.write(f'!SCALE = {str(scale)}' + '\n')
                 if "steps" in image:
                     steps = image["steps"]
                     steps = check_steps(steps, max_steps)
-                    f.write('!STEPS = ' + str(steps) + '\n')
+                    f.write(f'!STEPS = {str(steps)}' + '\n')
                 if "Size" in image:
                     if "x" in image["Size"]:
                         meta_size = image["Size"].split('x', 1)
-                        f.write('!WIDTH = ' + str(meta_size[0]) + '\n')
-                        f.write('!HEIGHT = ' + str(meta_size[1]) + '\n')
+                        f.write(f'!WIDTH = {str(meta_size[0])}' + '\n')
+                        f.write(f'!HEIGHT = {str(meta_size[1])}' + '\n')
                 f.write(prompt + '\n\n')
 
 
@@ -257,17 +238,17 @@ def slugify(value, allow_unicode=False):
     value = re.sub(r'[^\w\s-]', '', value.lower())
     value = re.sub(r'[-\s]+', '-', value).strip('-_')
     # added in case of very long filenames due to multiple prompts
-    return value[0:180]
+    return value[:180]
 
 def check_steps(value, max):
     new_value = value
     if max > 0:
         try:
-            int(value)
+            int(new_value)
         except:
             pass
         else:
-            if int(value) > max:
+            if int(new_value) > max:
                 new_value = max
     return new_value
 
@@ -297,7 +278,7 @@ if __name__ == '__main__':
 
     with sync_playwright() as playwright:
         civitai = Civitai()
-        
+
         for hash in civitai.hashes:
             print('\nLooking up hash ' + hash + '...')
             fulldata = civitai.lookup_hash(hash)
@@ -305,9 +286,9 @@ if __name__ == '__main__':
             if len(data) > 0:
                 count += 1
                 c_id = civitai.get_civitai_id_from_hash(hash)
-                url = "https://civitai.com/models/" + str(c_id)
-                print('  -> Hash ' + hash + ' maps to civitai.com ID ' + str(c_id) + '...')
-                print('  -> Scraping ' + url + ' for user image metadata...')
+                url = f"https://civitai.com/models/{str(c_id)}"
+                print(f'  -> Hash {hash} maps to civitai.com ID {str(c_id)}...')
+                print(f'  -> Scraping {url} for user image metadata...')
                 civitai.flush_metadata_buffer()
                 civitai.scrape(playwright, url)
                 # deep copy because we're constantly purging main obj
@@ -317,7 +298,7 @@ if __name__ == '__main__':
                 # write .prompts file
                 civitai.write(hash, slugify(fulldata[1]), all_data[c_id])
             else:
-                print('  -> Hash ' + hash + ' not found on civitai.com...')
+                print(f'  -> Hash {hash} not found on civitai.com...')
 
             #if count > 1:
             #    break
@@ -331,8 +312,8 @@ if __name__ == '__main__':
     with open(filename, 'w', encoding="utf-8") as f:
         resize_txt = '!AUTO_SIZE = off'
         if int(resize) > 0:
-            resize_txt = '!AUTO_SIZE = resize_longest_dimension: ' + str(resize)
-        f.write('[config]\n\n!MODE = standard\n!REPEAT = yes\n\n' + str(resize_txt) + '\n')
+            resize_txt = f'!AUTO_SIZE = resize_longest_dimension: {str(resize)}'
+        f.write('[config]\n\n!MODE = standard\n!REPEAT = yes\n\n' + resize_txt + '\n')
         f.write('!HIGHRES_FIX = yes\n!STRENGTH = 0.68\n!FILENAME = <model>-<date>-<time>\n')
         f.write('!AUTO_INSERT_MODEL_TRIGGER = end\n\n[prompts]\n')
 
@@ -341,7 +322,7 @@ if __name__ == '__main__':
             for image in metadata:
                 prompt = image["prompt"].replace('\n', '')
                 if prompt.startswith('['):
-                    prompt = 'image of ' + prompt
+                    prompt = f'image of {prompt}'
                 if prompt.endswith(','):
                     prompt = prompt[:-1]
                 negPrompt = ""
@@ -353,17 +334,17 @@ if __name__ == '__main__':
                     f.write('\n!NEG_PROMPT = ' + negPrompt + '\n')
                 if "sampler" in image:
                     sampler = image["sampler"]
-                    f.write('!SAMPLER = ' + sampler + '\n')
+                    f.write(f'!SAMPLER = {sampler}' + '\n')
                 if "cfgScale" in image:
                     scale = image["cfgScale"]
-                    f.write('!SCALE = ' + str(scale) + '\n')
+                    f.write(f'!SCALE = {str(scale)}' + '\n')
                 if "steps" in image:
                     steps = image["steps"]
                     steps = check_steps(steps, max_steps)
-                    f.write('!STEPS = ' + str(steps) + '\n')
+                    f.write(f'!STEPS = {str(steps)}' + '\n')
                 if "Size" in image:
                     if "x" in image["Size"]:
                         meta_size = image["Size"].split('x', 1)
-                        f.write('!WIDTH = ' + str(meta_size[0]) + '\n')
-                        f.write('!HEIGHT = ' + str(meta_size[1]) + '\n')
+                        f.write(f'!WIDTH = {str(meta_size[0])}' + '\n')
+                        f.write(f'!HEIGHT = {str(meta_size[1])}' + '\n')
                 f.write(prompt + '\n\n')

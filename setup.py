@@ -45,7 +45,7 @@ def clone_repos(verbose = False, shell = False):
     ]
 
     for repo in repos:
-        msg('   fetching ' + repo + '...', verbose)
+        msg(f'   fetching {repo}...', verbose)
         exec(base+repo, verbose, shell)
 
 # installs all dependancies via pip
@@ -84,7 +84,7 @@ def install_dependencies(verbose = False, shell = False):
     packages.sort()
 
     for package in packages:
-        msg('   installing ' + package + '...', verbose)
+        msg(f'   installing {package}...', verbose)
         exec(base+package, verbose, shell)
 
 # perform real-esrgan setup
@@ -170,32 +170,31 @@ if __name__ == '__main__':
         else:
             print('\nNo previous installation detected; aborting update.')
             print('Run without the --update switch first.\n')
+    elif opt.force or not os.path.exists('stable-diffusion'):
+        # either no previous installation or the user is forcing re-install
+        try:
+            #clone_repos(verbose, shell)
+            install_pytorch(verbose, shell)
+            install_dependencies(verbose, shell)
+            #setup_esrgan(verbose, shell)
+        except FileNotFoundError:
+            print('\nUnable to find executable - try re-running setup with the --shell option, e.g.:')
+            print('   python setup.py --shell --force\n')
+            exit(-1)
+
+        create_config()
+        #checkpoint_path = 'stable-diffusion\models\ldm\stable-diffusion-v1'
+        #if not os.path.exists(checkpoint_path):
+        #    os.makedirs(checkpoint_path)
+
+        #print('\n\nAll done - don\'t forget to place your model.ckpt file in this directory! : ')
+        #print(checkpoint_path + '\n')
+        if not os.path.exists('output'):
+            os.makedirs('output')
+
+        print('\n\nAll done! - don\'t forget to add your automatic1111 repo location to config.txt!')
+
     else:
-        if opt.force or not os.path.exists('stable-diffusion'):
-            # either no previous installation or the user is forcing re-install
-            try:
-                #clone_repos(verbose, shell)
-                install_pytorch(verbose, shell)
-                install_dependencies(verbose, shell)
-                #setup_esrgan(verbose, shell)
-            except FileNotFoundError:
-                print('\nUnable to find executable - try re-running setup with the --shell option, e.g.:')
-                print('   python setup.py --shell --force\n')
-                exit(-1)
-
-            create_config()
-            #checkpoint_path = 'stable-diffusion\models\ldm\stable-diffusion-v1'
-            #if not os.path.exists(checkpoint_path):
-            #    os.makedirs(checkpoint_path)
-
-            #print('\n\nAll done - don\'t forget to place your model.ckpt file in this directory! : ')
-            #print(checkpoint_path + '\n')
-            if not os.path.exists('output'):
-                os.makedirs('output')
-
-            print('\n\nAll done! - don\'t forget to add your automatic1111 repo location to config.txt!')
-
-        else:
-            print('\nPrevious installation detected; aborting setup.')
-            print('If you really want to run setup again, use the --force switch.')
-            print('If you want to update this installation, use the --update switch.\n')
+        print('\nPrevious installation detected; aborting setup.')
+        print('If you really want to run setup again, use the --force switch.')
+        print('If you want to update this installation, use the --update switch.\n')

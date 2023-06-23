@@ -43,27 +43,23 @@ def run(playwright: Playwright) -> None:
 with sync_playwright() as playwright:
     def handle_response(response):
         global top
-        # the endpoint we are insterested in
-        #print(response.url)
-        search = 'recent.json'
-        if top:
-            search = 'top.json'
+        search = 'top.json' if top else 'recent.json'
         if (search in response.url):
             #resp = json.dumps(response.json(), indent=2)
             #with open('midjourney.json', 'w') as f:
             #    f.write(resp)
 
             r = response.json()
-            count = 0
             prompts = []
 
             if r["pageProps"]["jobs"]:
+                count = 0
                 for job in r["pageProps"]["jobs"]:
                     if "prompt" in job and job["prompt"] is not None:
                         count += 1
                         prompt = job["prompt"].replace('\n', '').strip()
                         if prompt.startswith('['):
-                            prompt = 'image of ' + prompt
+                            prompt = f'image of {prompt}'
                         if '--ar' in prompt:
                             prompt = prompt.split('--ar', 1)[0].strip()
                         while prompt.endswith(','):
@@ -75,15 +71,13 @@ with sync_playwright() as playwright:
                         if '<<<' in prompt and '>>>' in prompt:
                             start = prompt.split('<<<', 1)[0]
                             end = prompt.split('>>>', 1)[1]
-                            prompt = start + ' ' + end
+                            prompt = f'{start} {end}'
                         prompt = prompt.strip()
                         prompts.append(prompt)
 
-                prompts = list(set(prompts))
-                prompts.sort()
-
-                date = datetime.today().strftime('%Y-%m-%d')
-                filename = 'midjourney-' + date + '.prompts'
+                prompts = sorted(set(prompts))
+                date = datetime.now().strftime('%Y-%m-%d')
+                filename = f'midjourney-{date}.prompts'
                 if top:
                     filename = 'midjourney-showcase-top.prompts'
                 with open(filename, 'w', encoding="utf-8") as f:

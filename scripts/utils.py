@@ -35,13 +35,13 @@ class PromptSection():
 
     def debug_print(self):
         print("\n*** Printing contents of PromptSection: ***")
-        print("min pick: " + str(self.min_pick))
-        print("max pick: " + str(self.max_pick))
-        print("delim: (" + self.delim + ')')
+        print(f"min pick: {str(self.min_pick)}")
+        print(f"max pick: {str(self.max_pick)}")
+        print(f"delim: ({self.delim})")
         if len(self.tokens) > 0:
             print("tokens:")
             for x in self.tokens:
-                print(">> " + x)
+                print(f">> {x}")
         else:
             print("tokens list is empty")
         print('\n')
@@ -51,7 +51,7 @@ class PromptSection():
 class InputManager():
     def __init__(self, input_path):
         # a list of all the files we're using as inputs
-        self.files = list()
+        self.files = []
         self.input_path = ""
 
         if input_path != "":
@@ -64,20 +64,20 @@ class InputManager():
 
     # pick a random file from the list
     def pick_random(self):
-        if len(self.files) > 0:
-            x = random.randint(0, len(self.files)-1)
-            full_path = os.path.join(self.input_path, self.files[x])
-            return full_path
-        else:
+        if len(self.files) <= 0:
             return ""
+        x = random.randint(0, len(self.files)-1)
+        return os.path.join(self.input_path, self.files[x])
 
     def debug_print_files(self):
         if len(self.files) > 0:
-            print("Listing " + str(len(self.files)) + " total files in '" + self.input_directory + "':")
+            print(f"Listing {len(self.files)} total files in '{self.input_directory}':")
             for x in self.files:
                 print(x)
         else:
-            print("Input image directory '" + self.input_directory + "' is empty; input images will not be used.")
+            print(
+                f"Input image directory '{self.input_directory}' is empty; input images will not be used."
+            )
 
 # for easy management of prompts
 class PromptManager():
@@ -90,9 +90,9 @@ class PromptManager():
         self.reset_config_defaults()
 
         # list for config info
-        self.conf = list()
+        self.conf = []
         # list of PromptSection
-        self.prompts = list()
+        self.prompts = []
 
         if doinit:
             self.__init_config(self.conf, "config")
@@ -103,13 +103,8 @@ class PromptManager():
     # checks a line of text to see if it starts with a known header
     def is_header(self, line):
         valid_headers = ['config', 'prompts']
-        r = False
         check = line.lower().strip()
-        for h in valid_headers:
-            if check.startswith('[' + h):
-                r = True
-                break
-        return r
+        return any(check.startswith(f'[{h}') for h in valid_headers)
 
     # init the prompts list
     def __init_prompts(self, which_list, search_text):
@@ -117,9 +112,9 @@ class PromptManager():
             lines = f.readlines()
 
             found_header = False
-            search_header = '[' + search_text
+            search_header = f'[{search_text}'
 
-            tokens = list()
+            tokens = []
             ps = PromptSection(tokens, 1, 1, self.config.get('delim'))
 
             # find the search text and read until the next search header
@@ -136,7 +131,7 @@ class PromptManager():
                         which_list.append(ps)
 
                     # start a new PS
-                    tokens = list()
+                    tokens = []
                     ps = PromptSection(tokens, 1, 1,self.config.get('delim'))
 
                     # look for next prompt section
@@ -182,7 +177,7 @@ class PromptManager():
         with open(self.control.prompt_file, encoding = 'utf-8') as f:
             lines = f.readlines()
 
-            search_header = '[' + search_text + ']'
+            search_header = f'[{search_text}]'
             found_header = False
 
             # find the search text and read until the next search header

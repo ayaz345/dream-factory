@@ -35,14 +35,12 @@ from scripts.sdi import SDI
 
 # environment setup
 cwd = os.getcwd()
-python_path = ""
 env_paths = [ \
     os.path.join(cwd, 'taming-transformers'),
     os.path.join(cwd, 'CLIP')
 ]
 
-for path in env_paths:
-    python_path += os.pathsep + path
+python_path = "".join(os.pathsep + path for path in env_paths)
 #os.environ['PYTHONPATH'] = python_path
 
 

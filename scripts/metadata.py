@@ -26,7 +26,7 @@ def debug_exif_data(exif):
     print('\nEXIF data:')
     for key, val in exif.items():
         if key in ExifTags.TAGS:
-            print(str(key) + ': ' + ExifTags.TAGS[key] + ' : ' + str(val))
+            print(f'{str(key)}: {ExifTags.TAGS[key]} : {str(val)}')
 
 # reads IPTC data from the given filename using pillow
 def read_iptc_pillow(filename):
@@ -86,10 +86,8 @@ def debug_iptc_data(iptc):
         print('caption/abstract (description): ' + iptc['caption/abstract'])
     if iptc['keywords']:
         print('keywords : ')
-        i = 0
-        for kw in iptc['keywords']:
-            i += 1
-            print(' [' + str(i) + '] ' + kw)
+        for i, kw in enumerate(iptc['keywords'], start=1):
+            print(f' [{str(i)}] {kw}')
     if iptc['copyright notice']:
         print('copyright notice (copyright): ' + iptc['copyright notice'])
     print(iptc)
@@ -115,9 +113,9 @@ def attach_iptc_info(filename, old_iptc):
             new_iptc['keywords'] = old_iptc['keywords']
 
     new_iptc.save_as(filename)
-    if os.path.exists(filename + '~'):
+    if os.path.exists(f'{filename}~'):
         try:
-            os.remove(filename + '~')
+            os.remove(f'{filename}~')
         except:
             pass
 
@@ -139,9 +137,9 @@ def write_iptc_info(filename, title, description, keywords, copyright):
         info['keywords'] = keywords
 
         info.save_as(filename)
-        if os.path.exists(filename + '~'):
+        if os.path.exists(f'{filename}~'):
             try:
-                os.remove(filename + '~')
+                os.remove(f'{filename}~')
             except:
                 pass
 
@@ -158,17 +156,17 @@ def write_iptc_info_append(filename, title, description, keywords, copyright):
 
     if info != None:
         if info['object name']:
-            info['object name'] += (' ' + title).encode('utf8')
+            info['object name'] += f' {title}'.encode('utf8')
         else:
             info['object name'] = title
 
         if info['caption/abstract']:
-            info['caption/abstract'] += (' ' + description).encode('utf8')
+            info['caption/abstract'] += f' {description}'.encode('utf8')
         else:
             info['caption/abstract'] = description
 
         if info['copyright notice']:
-            info['copyright notice'] += (' ' + copyright).encode('utf8')
+            info['copyright notice'] += f' {copyright}'.encode('utf8')
         else:
             info['copyright notice'] = copyright
 
@@ -180,8 +178,8 @@ def write_iptc_info_append(filename, title, description, keywords, copyright):
             info['keywords'] = keywords
 
         info.save_as(filename)
-        if os.path.exists(filename + '~'):
+        if os.path.exists(f'{filename}~'):
             try:
-                os.remove(filename + '~')
+                os.remove(f'{filename}~')
             except:
                 pass

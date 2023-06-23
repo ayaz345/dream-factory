@@ -46,18 +46,16 @@ if __name__ == '__main__':
         if (opt.search == 'top'):
             print('Grabbing top results from lexica.art...')
         else:
-            print('Grabbing results from lexica.art that match: ' + opt.search + '...')
+            print(f'Grabbing results from lexica.art that match: {opt.search}...')
 
-        URL = "https://lexica.art/api/v1/search?q=" + urllib.parse.quote_plus(opt.search)
+        URL = f"https://lexica.art/api/v1/search?q={urllib.parse.quote_plus(opt.search)}"
         page = urlopen(URL)
         strpage = page.read().decode('utf-8')
         prompts = json.loads(strpage)
 
         # first insert to a list so we can sanitize and de-dupe
         for prompt in prompts["images"]:
-            if opt.no_nsfw and prompt["nsfw"]:
-                pass
-            else:
+            if not opt.no_nsfw or not prompt["nsfw"]:
                 fp = prompt["prompt"].strip()
                 # remove trailing spaces and commas
                 while fp.endswith(' ') or fp.endswith(','):
@@ -75,7 +73,7 @@ if __name__ == '__main__':
             lines = f.readlines()
 
         for line in lines:
-            if line.strip() != '' and line.strip() != '\n':
+            if line.strip() not in ['', '\n']:
                 if line.startswith('['):
                     line = line.replace('[', '')
                     line = line.replace(']', '')
@@ -92,17 +90,15 @@ if __name__ == '__main__':
             line = ''
             try:
                 line = search_queue.popleft()
-                print('Grabbing results from lexica.art that match: ' + line + '...')
-                URL = "https://lexica.art/api/v1/search?q=" + urllib.parse.quote_plus(line)
+                print(f'Grabbing results from lexica.art that match: {line}...')
+                URL = f"https://lexica.art/api/v1/search?q={urllib.parse.quote_plus(line)}"
                 page = urlopen(URL)
                 strpage = page.read().decode('utf-8')
                 prompts = json.loads(strpage)
 
                 # first insert to a list so we can sanitize and de-dupe
                 for prompt in prompts["images"]:
-                    if opt.no_nsfw and prompt["nsfw"]:
-                        pass
-                    else:
+                    if not opt.no_nsfw or not prompt["nsfw"]:
                         fp = prompt["prompt"].strip()
                         # remove trailing spaces and commas
                         while fp.endswith(' ') or fp.endswith(','):
@@ -120,10 +116,7 @@ if __name__ == '__main__':
     # de-dupe
     final = [*set(images)]
 
-    # now write final list to file
-    f = open('lexica-' + opt.search + '-prompts.txt', 'w', encoding = 'utf-8')
-    for prompt in final:
-        f.write(prompt + '\n\n')
-    f.close()
-
-    print('Done - lexica-' + opt.search + '-prompts.txt saved!')
+    with open(f'lexica-{opt.search}-prompts.txt', 'w', encoding = 'utf-8') as f:
+        for prompt in final:
+            f.write(prompt + '\n\n')
+    print(f'Done - lexica-{opt.search}-prompts.txt saved!')

@@ -45,7 +45,7 @@ def get_filter_words_from_trigger_file(filepath):
         for line in lines:
             if ',' in line:
                 word = line.split(',', 1)[1].strip()
-                if word != '' and word != '\n':
+                if word not in ['', '\n']:
                     filter_words.append(word)
     # de-dupe & arrange longest phrases first
     filter_words = [*set(filter_words)]
@@ -55,10 +55,7 @@ def get_filter_words_from_trigger_file(filepath):
 
 # gets images found within specified dir, ignores subdirs
 def get_images_from_dir(dir):
-    images = []
-    for f in os.scandir(dir):
-        if f.path.lower().endswith(".jpg"):
-            images.append(f.path)
+    images = [f.path for f in os.scandir(dir) if f.path.lower().endswith(".jpg")]
     images.sort()
     return images
 
@@ -121,7 +118,7 @@ def extract_params_from_command(command):
             temp = command.split('--prompt', 1)[1]
             if '--' in temp:
                 temp = temp.split('--', 1)[0]
-            params.update({'prompt' : temp.strip().strip('"')})
+            params['prompt'] = temp.strip().strip('"')
 
         else:
             # we'll assume anything before --ddim_steps is the prompt
@@ -130,55 +127,55 @@ def extract_params_from_command(command):
             if temp is not None and len(temp) > 0 and temp[-1] == '\"':
                 temp = temp[:-1]
             temp = temp.replace('\\', '')
-            params.update({'prompt' : temp})
+            params['prompt'] = temp
 
         if '--neg_prompt' in command:
             temp = command.split('--neg_prompt', 1)[1]
             if '--' in temp:
                 temp = temp.split('--', 1)[0]
-            params.update({'neg_prompt' : temp.strip().strip('"')})
+            params['neg_prompt'] = temp.strip().strip('"')
 
         if '--ckpt' in command:
             temp = command.split('--ckpt', 1)[1]
             if '--' in temp:
                 temp = temp.split('--', 1)[0]
-            params.update({'model' : temp.strip().strip('"')})
+            params['model'] = temp.strip().strip('"')
 
         if '--sampler' in command:
             temp = command.split('--sampler', 1)[1]
             if '--' in temp:
                 temp = temp.split('--', 1)[0]
-            params.update({'sampler' : temp.strip()})
+            params['sampler'] = temp.strip()
 
         if '--ddim_steps' in command:
             temp = command.split('--ddim_steps', 1)[1]
             if '--' in temp:
                 temp = temp.split('--', 1)[0]
-            params.update({'steps' : temp.strip()})
+            params['steps'] = temp.strip()
 
         if '--scale' in command:
             temp = command.split('--scale', 1)[1]
             if '--' in temp:
                 temp = temp.split('--', 1)[0]
-            params.update({'scale' : temp.strip()})
+            params['scale'] = temp.strip()
 
         if '--seed' in command:
             temp = command.split('--seed', 1)[1]
             if '--' in temp:
                 temp = temp.split('--', 1)[0]
-            params.update({'seed' : temp.strip()})
+            params['seed'] = temp.strip()
 
         if '--W' in command:
             temp = command.split('--W', 1)[1]
             if '--' in temp:
                 temp = temp.split('--', 1)[0]
-            params.update({'width' : temp.strip()})
+            params['width'] = temp.strip()
 
         if '--H' in command:
             temp = command.split('--H', 1)[1]
             if '--' in temp:
                 temp = temp.split('--', 1)[0]
-            params.update({'height' : temp.strip()})
+            params['height'] = temp.strip()
 
         if '--init-img' in command:
             temp = command.split('--init-img', 1)[1]
@@ -188,13 +185,13 @@ def extract_params_from_command(command):
             head, tail = os.path.split(temp)
             if tail == '':
                 tail = temp
-            params.update({'input_image' : tail})
+            params['input_image'] = tail
 
         if '--strength' in command:
             temp = command.split('--strength', 1)[1]
             if '--' in temp:
                 temp = temp.split('--', 1)[0]
-            params.update({'strength' : temp.strip()})
+            params['strength'] = temp.strip()
 
     return params
 

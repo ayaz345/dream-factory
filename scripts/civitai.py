@@ -43,19 +43,21 @@ class CivitaiFetcher(threading.Thread):
         URL = self.URL
         cache = []
         for hash in hash_list:
-            self.print('Working on model hash ' + hash + '...')
+            self.print(f'Working on model hash {hash}...')
             skip = False
             self.lookup_count += 1
             hashinfo = requests.get(URL + hash.upper())
             try:
                 data = hashinfo.json()
             except:
-                self.print('Error attempting to lookup model hash ' + hash + ' on civitai.com; skipping...')
+                self.print(
+                    f'Error attempting to lookup model hash {hash} on civitai.com; skipping...'
+                )
                 self.lookup_count -= 1
                 skip = True
             if not skip:
                 if 'model' in data and 'name' in data['model']:
-                    info = hash + ';'
+                    info = f'{hash};'
                     model_name = data['model']['name'].replace(';', ',').strip()
                     model_id = data['modelId']
                     version_name = data['name'].replace(';', ',').strip()
@@ -65,7 +67,9 @@ class CivitaiFetcher(threading.Thread):
                     if data['model']['nsfw']:
                         nsfw = 'nsfw'
                     #description = data['description']
-                    self.print('Found hash ' + hash + ': ' + str(model_id) + ': ' + model_name + ' (' + version_name + ')')
+                    self.print(
+                        f'Found hash {hash}: {str(model_id)}: {model_name} ({version_name})'
+                    )
 
                     # remove non-triggers (e.g. '<lora:xxx:xxx>')
                     # grab default weight if possible
@@ -91,27 +95,25 @@ class CivitaiFetcher(threading.Thread):
 
                     # write info to cache file
                     #info += str(model_id) + ';' + model_name + ';' + version_name + ';' + baseModel + ';' + nsfw
-                    info += str(model_id) + ';' + model_name + ';' + baseModel + ';' + nsfw + ';'
+                    info += f'{str(model_id)};{model_name};{baseModel};{nsfw};'
 
                     tw = ''
-                    count = 0
-                    for trig in triggers:
+                    for count, trig in enumerate(triggers):
                         if count > 0:
                             tw += ','
                         tw += trig.strip()
-                        count += 1
                     info += tw
 
                     # add default weight for loras
                     if 'lora' in self.model_type_desc.lower() or 'hypernet' in self.model_type_desc.lower():
-                        info += ';' + lora_weight
+                        info += f';{lora_weight}'
 
                     if info not in cache:
                         with open(filename, 'a', encoding="utf-8") as f:
                             f.write(info + '\n')
                         cache.append(info)
                 else:
-                    self.print('Hash ' + hash + ' not found on civitai.com!')
+                    self.print(f'Hash {hash} not found on civitai.com!')
                     if hash not in cache:
                         with open(filename, 'a', encoding="utf-8") as f:
                             f.write(hash + '\n')
@@ -120,7 +122,7 @@ class CivitaiFetcher(threading.Thread):
     # for debugging
     def print(self, text, force=False):
         if self.debug or force:
-            out_txt = "[CivitaiFetcher thread] >>> " + text
+            out_txt = f"[CivitaiFetcher thread] >>> {text}"
             with self.print_lock:
                 print(out_txt)
 
@@ -154,14 +156,14 @@ class HashCalc(threading.Thread):
             elif 'hypernet' in self.model_type_desc:
                 cache_file = self.hypernet_cache_file
             for file in self.files:
-                self.print('Calculating hash for: ' + file + '...')
+                self.print(f'Calculating hash for: {file}...')
                 hash = self.model_hash(file)
-                self.print('Calculated AutoV2 hash: ' + hash + '...')
+                self.print(f'Calculated AutoV2 hash: {hash}...')
                 short_file = os.path.basename(file)
-                hashes.append(short_file + ', ' + hash)
+                hashes.append(f'{short_file}, {hash}')
                 # write to cache file
                 with open(cache_file, 'a') as f:
-                    f.write(short_file + ', ' + hash + '\n')
+                    f.write(f'{short_file}, {hash}' + '\n')
                 self.hash_calc_count += 1
 
         else:
@@ -178,7 +180,7 @@ class HashCalc(threading.Thread):
                 sha256_hash.update(block)
             hash = sha256_hash.hexdigest()
         # take first 10 digits for autov2
-        return hash[0:10]
+        return hash[:10]
 
     # ensure cache directory exists, etc
     # errors here will abort entire process
@@ -234,7 +236,7 @@ class HashCalc(threading.Thread):
     # for debugging
     def print(self, text, force=False):
         if self.debug or force:
-            out_txt = "[HashCalc thread] >>> " + text
+            out_txt = f"[HashCalc thread] >>> {text}"
             with self.print_lock:
                 print(out_txt)
 
@@ -257,10 +259,12 @@ class BackgroundWorker():
 
     # callback for civitai lookup worker threads when finished
     def civitai_lookup_finished(self, count, *args):
-        desc = self.model_type_desc + ' hash'
+        desc = f'{self.model_type_desc} hash'
         if count > 1:
             desc += 'es'
-        self.control_ref.print('Finished background civitai.com lookups for ' + str(count) + ' uncached ' + desc + '...')
+        self.control_ref.print(
+            f'Finished background civitai.com lookups for {str(count)} uncached {desc}...'
+        )
         self.control_ref.civitai_startup_stage += 1
         self.control_ref.civitai_new_stage = True
         self.working = False
@@ -278,7 +282,9 @@ class BackgroundWorker():
         desc = self.model_type_desc
         if count > 1:
             desc += 's'
-        self.control_ref.print('Finished background hash calculations for ' + str(count) + ' uncached ' + desc + '...')
+        self.control_ref.print(
+            f'Finished background hash calculations for {str(count)} uncached {desc}...'
+        )
         self.control_ref.civitai_startup_stage += 1
         self.control_ref.civitai_new_stage = True
         self.working = False
@@ -286,6 +292,6 @@ class BackgroundWorker():
     # for debugging
     def print(self, text, force=False):
         if self.debug or force:
-            out_txt = "[Background Worker] >>> " + text
+            out_txt = f"[Background Worker] >>> {text}"
             with self.print_lock:
                 print(out_txt)

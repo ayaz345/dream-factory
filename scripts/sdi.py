@@ -231,7 +231,7 @@ class AliveRequest(threading.Thread):
     def check_alive(self):
         code = -1
         try:
-            response = requests.get(self.sdi_ref.url + '/docs', timeout = 300)
+            response = requests.get(f'{self.sdi_ref.url}/docs', timeout = 300)
             code = response.status_code
         except:
             code = 999
@@ -282,12 +282,12 @@ class SDI:
         self.platform = platform.system().lower()
         self.path_to_sd = path_to_sd
         self.command = 'webui-user.bat'
-        self.target_command = 'df-start-gpu-' + str(gpu_id) + '.bat'
+        self.target_command = f'df-start-gpu-{str(gpu_id)}.bat'
         self.sd_port = port
-        self.url = 'http://localhost:' + str(self.sd_port)
+        self.url = f'http://localhost:{str(self.sd_port)}'
         self.isRunning = True
-        self.logfilename = os.path.join('logs', 'gpu-' + str(self.gpu_id) + '-log.txt')
-        self.errorfilename = os.path.join('logs', 'gpu-' + str(self.gpu_id) + '-errors.txt')
+        self.logfilename = os.path.join('logs', f'gpu-{str(self.gpu_id)}-log.txt')
+        self.errorfilename = os.path.join('logs', f'gpu-{str(self.gpu_id)}-errors.txt')
         self.logfile = open(self.logfilename, 'w')
         self.errorfile = open(self.errorfilename, 'w')
         self.monitor = None
@@ -305,7 +305,7 @@ class SDI:
 
         if self.platform == 'linux':
             self.command = 'webui-user.sh'
-            self.target_command = 'df-start-gpu-' + str(gpu_id) + '.sh'
+            self.target_command = f'df-start-gpu-{str(gpu_id)}.sh'
 
 
     # starts up a new SD instance
@@ -317,15 +317,15 @@ class SDI:
         #if not exists(full_target):
         self.create_startup_batch_file()
 
-        self.log('starting new SD instance via: ' + full_target, True)
+        self.log(f'starting new SD instance via: {full_target}', True)
 
         self.process = subprocess.Popen(full_target, \
-            cwd=self.path_to_sd, \
-            #stdout=subprocess.PIPE, \
-            stdout=self.logfile, \
-            stderr=self.errorfile, \
-            bufsize=0, \
-            universal_newlines=True
+                cwd=self.path_to_sd, \
+                #stdout=subprocess.PIPE, \
+                stdout=self.logfile, \
+                stderr=self.errorfile, \
+                bufsize=0, \
+                universal_newlines=True
         )
 
         atexit.register(self.kill_sd_process)
@@ -354,9 +354,9 @@ class SDI:
                         line = line.replace('--autolaunch ', '')
                         line = line.replace('--autolaunch', '')
                         line = line.replace('\n', '')
-                        if not '--api' in line:
+                        if '--api' not in line:
                             line += ' --api'
-                        if not '--nowebui' in line:
+                        if '--nowebui' not in line:
                             line += ' --nowebui'
                         #if not '--lowram' in line:
                         #    line += ' --lowram'
@@ -365,24 +365,18 @@ class SDI:
                         if '--device-id' in line:
                             start = line.split('--device-id', 1)[0]
                             end = line.split('--device-id', 1)[1]
-                            if '--' in end:
-                                end = '--' + end.split('--', 1)[1]
-                            else:
-                                end = ''
+                            end = '--' + end.split('--', 1)[1] if '--' in end else ''
                             line = start + end
 
                         # ignore existing --port
                         if '--port' in line:
                             start = line.split('--port', 1)[0]
                             end = line.split('--port', 1)[1]
-                            if '--' in end:
-                                end = '--' + end.split('--', 1)[1]
-                            else:
-                                end = ''
+                            end = '--' + end.split('--', 1)[1] if '--' in end else ''
                             line = start + end
 
-                        line += ' --port ' + str(self.sd_port)
-                        line += ' --device-id ' + str(self.gpu_id)
+                        line += f' --port {str(self.sd_port)}'
+                        line += f' --device-id {str(self.gpu_id)}'
                         line += '\n'
 
                     elif line.startswith('#export COMMANDLINE_ARGS=') or line.startswith('export COMMANDLINE_ARGS='):
@@ -399,10 +393,10 @@ class SDI:
                                         print("\nNotice: found uncommented COMMANDLINE_ARGS in your webui-user.sh script.")
                                         print("Dream Factory requires its own COMMANDLINE_ARGS to be set, and an uncommented")
                                         print("line here will override the settings that Dream Factory needs to work.")
-                                        print("The following change has been made to " + original_file + " :\n")
-                                        print("old:   " + l)
-                                        l = '#' + l
-                                        print("new:   " + l)
+                                        print(f"The following change has been made to {original_file}" + " :\n")
+                                        print(f"old:   {l}")
+                                        l = f'#{l}'
+                                        print(f"new:   {l}")
                                         print("You'll need to uncomment this line if you wish to use Automatic1111 webui with the environment settings above.")
                                         print("It will be re-commented automatically each time Dream Factory starts (and you'll receive this message again).\n")
                                     o.write(l)
@@ -415,14 +409,14 @@ class SDI:
                             line = line[:-1]
                             addQuote = True
 
-                        if not '--api' in line:
+                        if '--api' not in line:
                             line += ' --api'
-                        if not '--nowebui' in line:
+                        if '--nowebui' not in line:
                             line += ' --nowebui'
                         #if not '--lowram' in line:
                         #    line += ' --lowram'
-                        line += ' --port ' + str(self.sd_port)
-                        line += ' --device-id ' + str(self.gpu_id)
+                        line += f' --port {str(self.sd_port)}'
+                        line += f' --device-id {str(self.gpu_id)}'
 
                         if addQuote:
                             line += '"'
@@ -513,7 +507,10 @@ class SDI:
             sampler_str += '   - ' + i['name'] + '\n'
 
         #self.log('Server indicates the following samplers are available for use:\n' + sampler_str)
-        self.log('received sampler query response: SD indicates ' + str(len(samplers)) + ' samplers available for use...', True)
+        self.log(
+            f'received sampler query response: SD indicates {len(samplers)} samplers available for use...',
+            True,
+        )
         samplers.sort()
         self.control_ref.sdi_samplers = samplers
 
@@ -537,12 +534,11 @@ class SDI:
     def controlnet_model_response(self, response):
         try:
             r = response.json()
-            models = []
-            for i in r['model_list']:
-                models.append(i)
-
-            if len(models) > 0:
-                self.log('received ControlNet query response: SD indicates ' + str(len(models)) + ' ControlNet models available for use...', True)
+            if models := list(r['model_list']):
+                self.log(
+                    f'received ControlNet query response: SD indicates {len(models)} ControlNet models available for use...',
+                    True,
+                )
                 self.control_ref.sdi_controlnet_models = models
             else:
                 self.log('received ControlNet query response: SD indicates no ControlNet models available; disabling ControlNet functionality (install at least one model)!', True)
@@ -567,16 +563,14 @@ class SDI:
     def controlnet_module_response(self, response):
         try:
             r = response.json()
-            modules = []
-            for i in r['module_list']:
-                modules.append(i)
-
-            if len(modules) > 0:
-                self.log('received ControlNet query response: SD indicates ' + str(len(modules)) + ' ControlNet preprocessors available for use...', True)
+            if modules := list(r['module_list']):
+                self.log(
+                    f'received ControlNet query response: SD indicates {len(modules)} ControlNet preprocessors available for use...',
+                    True,
+                )
                 self.control_ref.sdi_controlnet_preprocessors = modules
             else:
                 self.log('received ControlNet query response: SD indicates no ControlNet preprocessors available (is your ControlNet extension installed properly?)!', True)
-                #self.control_ref.sdi_controlnet_available = False
         except:
             self.log('*** Error: received invalid ControlNet preprocessor response (is your ControlNet extension up to date?)!', True)
 
@@ -629,13 +623,15 @@ class SDI:
         networks = []
         for i in r:
             if 'name' in i:
-                network = {}
-                network['name'] = i['name']
+                network = {'name': i['name']}
                 if 'path' in i:
                     network['path'] = i['path']
                 networks.append(network)
 
-        self.log('received hypernetwork query response: SD indicates ' + str(len(networks)) + ' hypernetworks available for use...', True)
+        self.log(
+            f'received hypernetwork query response: SD indicates {len(networks)} hypernetworks available for use...',
+            True,
+        )
         networks = sorted(networks, key=lambda d: d['name'].lower())
         self.control_ref.sdi_hypernetworks = networks
         self.busy = False
@@ -647,13 +643,15 @@ class SDI:
         loras = []
         for i in r:
             if 'name' in i:
-                lora = {}
-                lora['name'] = i['name']
+                lora = {'name': i['name']}
                 if 'path' in i:
                     lora['path'] = i['path']
                 loras.append(lora)
 
-        self.log('received LoRA query response: SD indicates ' + str(len(loras)) + ' LoRAs available for use...', True)
+        self.log(
+            f'received LoRA query response: SD indicates {len(loras)} LoRAs available for use...',
+            True,
+        )
         loras = sorted(loras, key=lambda d: d['name'].lower())
         self.control_ref.sdi_loras = loras
         self.busy = False
@@ -669,11 +667,9 @@ class SDI:
     # handle server script response
     def script_response(self, response):
         r = response.json()
-        txt2img_scripts = []
         img2img_scripts = []
         rtxt = 'is not'
-        for i in r['txt2img']:
-            txt2img_scripts.append(i)
+        txt2img_scripts = list(r['txt2img'])
         for i in r['img2img']:
             img2img_scripts.append(i)
             if i == 'ultimate sd upscale':
@@ -688,11 +684,11 @@ class SDI:
     # handle server upscaler response
     def upscaler_response(self, response):
         r = response.json()
-        upscalers = []
-        for i in r:
-            upscalers.append(i['name'])
-
-        self.log('received upscaler query response: SD indicates ' + str(len(upscalers)) + ' upscalers available for use...', True)
+        upscalers = [i['name'] for i in r]
+        self.log(
+            f'received upscaler query response: SD indicates {len(upscalers)} upscalers available for use...',
+            True,
+        )
         self.control_ref.sdi_upscalers = upscalers
         self.control_ref.check_default_upscaler()
         self.busy = False
@@ -713,13 +709,15 @@ class SDI:
         models = []
         for i in r:
             if 'title' in i:
-                model = {}
-                model['name'] = i['title']
+                model = {'name': i['title']}
                 if 'filename' in i:
                     model['path'] = i['filename']
                 models.append(model)
 
-        self.log('received model query response: SD indicates ' + str(len(models)) + ' models available for use...', True)
+        self.log(
+            f'received model query response: SD indicates {len(models)} models available for use...',
+            True,
+        )
 
         # send models to controller
         #models.sort()
@@ -736,18 +734,60 @@ class SDI:
     # handle upscale responses
     def handle_upscale_response(self, response):
         # only handle if we're not already shutting down
-        if self.isRunning:
+        if not self.isRunning:
+            return
             #self.log('Handling response from server...')
-            try:
-                r = response.json()
-                os.makedirs(self.output_dir, exist_ok=True)
+        try:
+            r = response.json()
+            os.makedirs(self.output_dir, exist_ok=True)
 
-                i = r['image']
-                image = Image.open(io.BytesIO(base64.b64decode(i)))
+            i = r['image']
+            image = Image.open(io.BytesIO(base64.b64decode(i)))
 
-                png_payload = {
-                    "image": "data:image/png;base64," + i
-                }
+            png_payload = {"image": f"data:image/png;base64,{i}"}
+            response2 = requests.post(url=f'{self.url}/sdapi/v1/png-info', json=png_payload)
+
+            pnginfo = PngImagePlugin.PngInfo()
+            pnginfo.add_text("parameters", response2.json().get("info"))
+
+            seed = '0'
+            # get the actual seed used
+            if 'Seed:' in response2.json().get("info"):
+                temp = response2.json().get("info").split('Seed:', 1)
+                temp = temp[1].split(',', 1)
+                seed = temp[0].strip()
+
+            filename = f'seed_{seed}_u.png'
+            image.save(os.path.join(self.output_dir, filename), pnginfo=pnginfo)
+                    #self.log(filename + ' created!')
+        except KeyError:
+            self.log('*** Error response received during upscaling! *** : ' + str(r['detail']), True)
+            time.sleep(1)
+        except:
+            #e = sys.exc_info()[0]
+            #self.log('*** Error response received! *** : ' + str(e), True)
+            self.log('*** Error response received during upscaling! *** : if this persists, try lowering your settings', True)
+            time.sleep(1)
+
+        self.request_count += 1
+        self.busy = False
+
+
+    # handle SD responses, callback for server requests
+    def handle_response(self, response):
+        # only handle if we're not already shutting down
+        if not self.isRunning:
+            return
+        #self.log('Handling response from server...')
+        self.last_job_success = True
+        try:
+            r = response.json()
+            os.makedirs(self.output_dir, exist_ok=True)
+
+            for i in r['images']:
+                image = Image.open(io.BytesIO(base64.b64decode(i.split(",",1)[0])))
+
+                png_payload = {"image": f"data:image/png;base64,{i}"}
                 response2 = requests.post(url=f'{self.url}/sdapi/v1/png-info', json=png_payload)
 
                 pnginfo = PngImagePlugin.PngInfo()
@@ -760,73 +800,29 @@ class SDI:
                     temp = temp[1].split(',', 1)
                     seed = temp[0].strip()
 
-                filename = 'seed_' + seed + '_u.png'
+                filename = f'seed_{seed}.png'
                 image.save(os.path.join(self.output_dir, filename), pnginfo=pnginfo)
-                #self.log(filename + ' created!')
-            except KeyError:
-                self.log('*** Error response received during upscaling! *** : ' + str(r['detail']), True)
-                time.sleep(1)
-            except:
-                #e = sys.exc_info()[0]
-                #self.log('*** Error response received! *** : ' + str(e), True)
-                self.log('*** Error response received during upscaling! *** : if this persists, try lowering your settings', True)
-                time.sleep(1)
+                            #self.log(filename + ' created!')
+        except KeyError:
+            self.log('*** Error response received! *** : ' + str(r['detail']), True)
+            time.sleep(1)
+            self.last_job_success = False
+        except:
+            #e = sys.exc_info()[0]
+            #self.log('*** Error response received! *** : ' + str(e), True)
+            self.log('*** Error response received! *** : if this persists, try lowering your settings', True)
+            time.sleep(1)
+            self.last_job_success = False
 
-            self.request_count += 1
-            self.busy = False
-
-
-    # handle SD responses, callback for server requests
-    def handle_response(self, response):
-        # only handle if we're not already shutting down
-        if self.isRunning:
-            #self.log('Handling response from server...')
-            self.last_job_success = True
-            try:
-                r = response.json()
-                os.makedirs(self.output_dir, exist_ok=True)
-
-                for i in r['images']:
-                    image = Image.open(io.BytesIO(base64.b64decode(i.split(",",1)[0])))
-
-                    png_payload = {
-                        "image": "data:image/png;base64," + i
-                    }
-                    response2 = requests.post(url=f'{self.url}/sdapi/v1/png-info', json=png_payload)
-
-                    pnginfo = PngImagePlugin.PngInfo()
-                    pnginfo.add_text("parameters", response2.json().get("info"))
-
-                    seed = '0'
-                    # get the actual seed used
-                    if 'Seed:' in response2.json().get("info"):
-                        temp = response2.json().get("info").split('Seed:', 1)
-                        temp = temp[1].split(',', 1)
-                        seed = temp[0].strip()
-
-                    filename = 'seed_' + seed + '.png'
-                    image.save(os.path.join(self.output_dir, filename), pnginfo=pnginfo)
-                    #self.log(filename + ' created!')
-            except KeyError:
-                self.log('*** Error response received! *** : ' + str(r['detail']), True)
-                time.sleep(1)
-                self.last_job_success = False
-            except:
-                #e = sys.exc_info()[0]
-                #self.log('*** Error response received! *** : ' + str(e), True)
-                self.log('*** Error response received! *** : if this persists, try lowering your settings', True)
-                time.sleep(1)
-                self.last_job_success = False
-
-            self.request_count += 1
-            self.busy = False
+        self.request_count += 1
+        self.busy = False
 
 
     # tells the SD instance to load the indicated model
     def load_model(self, new_model):
         self.options_change_in_progress = True
         self.model_loading_now = new_model
-        self.log("requesting a new model load: " + new_model, True)
+        self.log(f"requesting a new model load: {new_model}", True)
         payload = {
             "sd_model_checkpoint": new_model
         }
@@ -853,16 +849,6 @@ class SDI:
                 self.model_loaded = self.model_loading_now
                 self.model_loading_now = ''
                 self.log('new model successfully loaded!', True)
-            else:
-                pass
-                # TODO uncomment this if used beyond initial setup
-                #self.log('options successfully changed!', True)
-        else:
-            # TODO handle error reporting
-            #r = response.json()
-            #print('unexpected handle_options_response: ' + str(response.status_code))
-            pass
-
         self.options_change_in_progress = False
 
 
@@ -908,7 +894,7 @@ class SDI:
     # set webserver = True to also send it to the web UI log
     def log(self, line, webserver = False):
         #pre = '[GPU ' + str(self.gpu_id) + '] >>> '
-        pre = '[' + self.worker_name + '] >>> '
+        pre = f'[{self.worker_name}] >>> '
         print(pre + line)
         if webserver:
             self.control_ref.output_buffer.append(pre + line + '\n')
